@@ -1,6 +1,6 @@
 import app from "./app.js";
-import { ENV } from "./lib/env.js";
+import "dotenv/config";
 
-app.listen(ENV.PORT, "0.0.0.0", () => {
-  console.log(`Server TeraParent berjalan di http://localhost:${ENV.PORT}`);
+app.listen(Number(process.env.PORT), "0.0.0.0", () => {
+  console.log(`Server TeraParent berjalan di http://localhost:${process.env.PORT}`);
 });

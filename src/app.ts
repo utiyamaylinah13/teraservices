@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from "express";
+import authRoutes from "./routes/auth.routes.js";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -18,6 +19,8 @@ app.get("/", (_req: Request, res: Response) => {
     message: "API TeraParent berjalan dengan baik"
   });
 });
+
+app.use("/api/auth", authRoutes);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
