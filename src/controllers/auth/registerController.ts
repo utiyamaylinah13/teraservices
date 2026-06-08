@@ -75,7 +75,7 @@ export const register = async (req: Request, res: Response) => {
 
       await tx.otpCode.create({
         data: {
-          userId: newUser.id,
+          userId: String(newUser.id),
           email: normalizedEmail,
           codeHash: hashedOtp,
           purpose: "VERIFY_EMAIL",

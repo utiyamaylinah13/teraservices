@@ -2,7 +2,7 @@ import "dotenv/config";
 import { Request, Response } from "express";
 import prisma from "../../lib/prisma.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
-import { AuthRequest } from "../../middlewares/auth.middleware.js";
+import { AuthRequest } from "../../middlewares/authMiddleware.js";
 
 
 export const getMe = async (req: AuthRequest, res: Response) => {
@@ -29,7 +29,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
             name: true,
             gender: true,
             birthDate: true,
-            ageMonths: true,
+            ageYear: true,
             heightCm: true,
             weightKg: true,
           },
@@ -41,9 +41,11 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       return errorResponse(res, "User tidak ditemukan", 404);
     }
 
+    const children = (user as any).children as Array<unknown> | undefined;
+
     return successResponse(res, "Data user berhasil diambil", {
       ...user,
-      hasChildData: user.children.length > 0,
+      hasChildData: Array.isArray(children) && children.length > 0,
     });
   } catch (error) {
     console.error(error);

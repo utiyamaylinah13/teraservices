@@ -2,7 +2,7 @@ import jwt, { SignOptions } from "jsonwebtoken";
 import "dotenv/config";
 
 export type JwtPayload = {
-  id: number;
+  id: string;
   email: string;
 };
 

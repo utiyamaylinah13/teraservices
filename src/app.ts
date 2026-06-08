@@ -1,8 +1,9 @@
 import express, { Application, Request, Response } from "express";
-import authRoutes from "./routes/auth.routes.js";
+import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { childRouter } from "./routes/childRoutes.js";
 
 const app: Application = express();
 
@@ -21,6 +22,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/child", childRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

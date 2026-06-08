@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { Request, Response } from "express";
+
 import prisma from "../../lib/prisma.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
 import { compareOtp } from "../../utils/otp.js";
+import { generateToken } from "../../utils/jwt.js";
 
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
@@ -39,7 +41,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return errorResponse(res, "OTP tidak valid", 400);
     }
 
-    await prisma.$transaction(async (tx) => {
+    const updatedUser = await prisma.$transaction(async (tx) => {
       await tx.otpCode.update({
         where: {
           id: otpData.id,
@@ -49,17 +51,46 @@ export const verifyOtp = async (req: Request, res: Response) => {
         },
       });
 
-      await tx.user.update({
+      const user = await tx.user.update({
         where: {
           email: normalizedEmail,
         },
         data: {
           isEmailVerified: true,
         },
+        include: {
+          children: {
+            select: {
+              id: true,
+              name: true,
+              gender: true,
+            },
+          },
+        },
       });
+
+      return user;
     });
 
-    return successResponse(res, "Verifikasi OTP berhasil");
+    const token = generateToken({
+      id: String(updatedUser.id),
+      email: updatedUser.email,
+    });
+
+    return successResponse(res, "Verifikasi OTP berhasil", {
+      token,
+      user: {
+        id: updatedUser.id,
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        profileImage: updatedUser.profileImage,
+        isEmailVerified: updatedUser.isEmailVerified,
+        isFaceRecognitionActive: updatedUser.isFaceRecognitionActive,
+        hasChildData: updatedUser.children.length > 0,
+        children: updatedUser.children,
+      },
+    });
   } catch (error) {
     console.error(error);
     return errorResponse(res, "Terjadi kesalahan pada server", 500);

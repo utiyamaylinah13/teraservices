@@ -89,29 +89,29 @@ enum FaceAuthStatus {
 // USER & AUTHENTICATION
 
 model User {
-  id                     Int      @id @default(autoincrement())
-  fullName               String
-  email                  String   @unique
-  password               String
-  phone                  String?
-  role                   Role     @default(USER)
-  profileImage           String?
-  isEmailVerified        Boolean  @default(false)
+  id                      String  @id @default(uuid()) @db.Uuid
+  fullName                String
+  email                   String  @unique
+  password                String
+  phone                   String?
+  role                    Role    @default(USER)
+  profileImage            String?
+  isEmailVerified         Boolean @default(false)
   isFaceRecognitionActive Boolean @default(false)
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  children               Child[]
-  otps                   OtpCode[]
-  faceCredentials        FaceCredential[]
-  faceAuthLogs           FaceAuthLog[]
-  expertHistories        ExpertInteraction[]
+  children        Child[]
+  otps            OtpCode[]
+  faceCredentials FaceCredential[]
+  faceAuthLogs    FaceAuthLog[]
+  expertHistories ExpertInteraction[]
 }
 
 model OtpCode {
-  id         Int        @id @default(autoincrement())
-  userId     Int?
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String?    @db.Uuid
   email      String
   codeHash   String
   purpose    OtpPurpose
@@ -119,76 +119,66 @@ model OtpCode {
   verifiedAt DateTime?
   createdAt  DateTime   @default(now())
 
-  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([purpose])
 }
 
-// FACE RECOGNITION
-
 model FaceCredential {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  embedding   Json
-  deviceName  String?
-  deviceId    String?
-  isActive    Boolean  @default(true)
+  id         String  @id @default(uuid()) @db.Uuid
+  userId     String  @db.Uuid
+  embedding  Json
+  deviceName String?
+  deviceId   String?
+  isActive   Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isActive])
 }
 
 model FaceAuthLog {
-  id          Int            @id @default(autoincrement())
-  userId      Int?
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String? @db.Uuid
+  email  String?
 
-  /*
-    Email disimpan juga karena saat login wajah,
-    bisa saja sistem baru mengenali email dulu sebelum userId ditemukan.
-  */
+  status     FaceAuthStatus
+  distance   Float?
+  threshold  Float?
+  deviceInfo String?
+  ipAddress  String?
+  message    String?
 
-  email       String?
+  createdAt DateTime @default(now())
 
-  status      FaceAuthStatus
-  distance    Float?
-  threshold   Float?
-  deviceInfo  String?
-  ipAddress   String?
-  message     String?
-
-  createdAt   DateTime       @default(now())
-
-  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([email])
   @@index([status])
 }
 
-// DATA ANAK
-
 model Child {
-  id                       Int       @id @default(autoincrement())
-  userId                   Int
-  name                     String
-  birthDate                DateTime?
-  ageMonths                Int?
-  gender                   Gender
-  heightCm                 Float
-  weightKg                 Float
-  initialDevelopmentNote   String?
-  photo                    String?
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @db.Uuid
+  name                   String
+  birthDate              DateTime?
+  ageYear                Int?
+  gender                 Gender
+  heightCm               Float
+  weightKg               Float
+  initialDevelopmentNote String?
+  photo                  String?
 
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   growthRecords            GrowthRecord[]
   screeningSessions        ScreeningSession[]
   dailyActivities          DailyActivity[]
@@ -198,28 +188,22 @@ model Child {
   @@index([userId])
 }
 
-/*
-  Untuk grafik perkembangan tinggi dan berat badan.
-*/
-
 model GrowthRecord {
-  id         Int      @id @default(autoincrement())
-  childId    Int
+  id         String   @id @default(uuid()) @db.Uuid
+  childId    String   @db.Uuid
   heightCm   Float
   weightKg   Float
   recordedAt DateTime @default(now())
   note       String?
 
-  child      Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId])
   @@index([recordedAt])
 }
 
-// MASTER DATA SCREENING
-
 model ScreeningQuestion {
-  id          Int             @id @default(autoincrement())
+  id          String          @id @default(uuid()) @db.Uuid
   domain      ScreeningDomain
   question    String
   type        QuestionType
@@ -227,62 +211,60 @@ model ScreeningQuestion {
   orderNumber Int
   isActive    Boolean         @default(true)
 
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  options     ScreeningOption[]
-  answers     ScreeningAnswer[]
+  options ScreeningOption[]
+  answers ScreeningAnswer[]
 
   @@index([domain])
   @@index([orderNumber])
 }
 
 model ScreeningOption {
-  id          Int               @id @default(autoincrement())
-  questionId  Int
+  id          String @id @default(uuid()) @db.Uuid
+  questionId  String @db.Uuid
   label       String
   value       String
-  score       Int               @default(0)
+  score       Int    @default(0)
   orderNumber Int
 
-  question    ScreeningQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answers     ScreeningAnswer[]
+  question ScreeningQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  ScreeningAnswer[]
 
   @@index([questionId])
 }
 
-// HASIL & RIWAYAT SCREENING
-
 model ScreeningSession {
-  id                           Int             @id @default(autoincrement())
-  childId                       Int
-  status                        ScreeningStatus @default(IN_PROGRESS)
+  id      String          @id @default(uuid()) @db.Uuid
+  childId String          @db.Uuid
+  status  ScreeningStatus @default(IN_PROGRESS)
 
-  progressCurrentStep           Int             @default(0)
-  progressTotalStep             Int             @default(0)
+  progressCurrentStep Int @default(0)
+  progressTotalStep   Int @default(0)
 
-  totalScore                    Int             @default(0)
+  totalScore Int @default(0)
 
-  communicationSpeechScore      Int             @default(0)
-  physicalMotorScore            Int             @default(0)
-  cognitiveProblemSolvingScore  Int             @default(0)
-  socialEmotionalScore          Int             @default(0)
+  communicationSpeechScore     Int @default(0)
+  physicalMotorScore           Int @default(0)
+  cognitiveProblemSolvingScore Int @default(0)
+  socialEmotionalScore         Int @default(0)
 
-  mainIndication                IndicationType?
-  indicationSummary             String?
-  resultDescription             String?
-  recommendationText            String?
-  disclaimerText                String           @default("Hasil screening ini bukan diagnosis final dan tidak menggantikan pemeriksaan profesional.")
+  mainIndication     IndicationType?
+  indicationSummary  String?
+  resultDescription  String?
+  recommendationText String?
+  disclaimerText     String          @default("Hasil screening ini bukan diagnosis final dan tidak menggantikan pemeriksaan profesional.")
 
-  startedAt                     DateTime         @default(now())
-  completedAt                   DateTime?
-  createdAt                     DateTime         @default(now())
-  updatedAt                     DateTime         @updatedAt
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  child                         Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
-  answers                       ScreeningAnswer[]
-  dailyActivities               DailyActivity[]
-  expertHistories               ExpertInteraction[]
+  child           Child               @relation(fields: [childId], references: [id], onDelete: Cascade)
+  answers         ScreeningAnswer[]
+  dailyActivities DailyActivity[]
+  expertHistories ExpertInteraction[]
 
   @@index([childId])
   @@index([status])
@@ -290,93 +272,87 @@ model ScreeningSession {
 }
 
 model ScreeningAnswer {
-  id                 Int               @id @default(autoincrement())
-  screeningSessionId Int
-  questionId          Int
-  optionId            Int?
-  answerValue         String?
-  score               Int               @default(0)
+  id                 String  @id @default(uuid()) @db.Uuid
+  screeningSessionId String  @db.Uuid
+  questionId         String  @db.Uuid
+  optionId           String? @db.Uuid
+  answerValue        String?
+  score              Int     @default(0)
 
-  createdAt           DateTime          @default(now())
+  createdAt DateTime @default(now())
 
-  screeningSession    ScreeningSession  @relation(fields: [screeningSessionId], references: [id], onDelete: Cascade)
-  question            ScreeningQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
-  option              ScreeningOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  screeningSession ScreeningSession  @relation(fields: [screeningSessionId], references: [id], onDelete: Cascade)
+  question         ScreeningQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  option           ScreeningOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
 
   @@index([screeningSessionId])
   @@index([questionId])
 }
 
-// MASTER AKTIVITAS
-
 model ActivityTemplate {
-  id                 Int             @id @default(autoincrement())
-  title              String
-  domain             ScreeningDomain
-  relatedIndication  IndicationType?
+  id                String          @id @default(uuid()) @db.Uuid
+  title             String
+  domain            ScreeningDomain
+  relatedIndication IndicationType?
 
-  minAgeMonths       Int?
-  maxAgeMonths       Int?
+  minAgeMonths Int?
+  maxAgeMonths Int?
 
-  description        String
-  purpose            String
-  durationMinutes    Int
-  difficulty         DifficultyLevel @default(EASY)
+  description     String
+  purpose         String
+  durationMinutes Int
+  difficulty      DifficultyLevel @default(EASY)
 
-  toolsNeeded        Json?
-  steps              Json
-  successIndicator   String
-  parentTips         String?
+  toolsNeeded      Json?
+  steps            Json
+  successIndicator String
+  parentTips       String?
 
-  isActive           Boolean         @default(true)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  dailyActivities    DailyActivity[]
+  dailyActivities DailyActivity[]
 
   @@index([domain])
   @@index([relatedIndication])
 }
 
-/*
-  Aktivitas harian hasil generate dari screening terakhir.
-*/
-
 model DailyActivity {
-  id                 Int                @id @default(autoincrement())
-  childId             Int
-  screeningSessionId  Int?
-  templateId          Int?
+  id                 String  @id @default(uuid()) @db.Uuid
+  childId            String  @db.Uuid
+  screeningSessionId String? @db.Uuid
+  templateId         String? @db.Uuid
 
-  title               String
-  domain              ScreeningDomain
-  relatedIndication   IndicationType?
+  title             String
+  domain            ScreeningDomain
+  relatedIndication IndicationType?
 
-  description         String
-  purpose             String
-  durationMinutes     Int
-  difficulty          DifficultyLevel   @default(EASY)
+  description     String
+  purpose         String
+  durationMinutes Int
+  difficulty      DifficultyLevel @default(EASY)
 
-  toolsNeeded         Json?
-  steps               Json
-  successIndicator    String
-  parentTips          String?
+  toolsNeeded      Json?
+  steps            Json
+  successIndicator String
+  parentTips       String?
 
-  scheduledDate       DateTime
-  reminderAt          DateTime?
-  status              ActivityStatus    @default(NOT_STARTED)
+  scheduledDate DateTime
+  reminderAt    DateTime?
+  status        ActivityStatus @default(NOT_STARTED)
 
-  startedAt           DateTime?
-  completedAt         DateTime?
-  missedAt            DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  missedAt    DateTime?
 
-  child               Child             @relation(fields: [childId], references: [id], onDelete: Cascade)
-  screeningSession    ScreeningSession? @relation(fields: [screeningSessionId], references: [id], onDelete: SetNull)
-  template            ActivityTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  note                ActivityNote?
+  child            Child             @relation(fields: [childId], references: [id], onDelete: Cascade)
+  screeningSession ScreeningSession? @relation(fields: [screeningSessionId], references: [id], onDelete: SetNull)
+  template         ActivityTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  note             ActivityNote?
 
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([childId])
   @@index([scheduledDate])
@@ -384,107 +360,94 @@ model DailyActivity {
   @@index([domain])
 }
 
-/*
-  Catatan setelah aktivitas selesai.
-*/
-
 model ActivityNote {
-  id               Int           @id @default(autoincrement())
-  dailyActivityId  Int           @unique
+  id              String @id @default(uuid()) @db.Uuid
+  dailyActivityId String @unique @db.Uuid
 
-  childResponse    String?
-  successLevel     Int?
-  obstacleNote     String?
-  parentNote       String?
+  childResponse String?
+  successLevel  Int?
+  obstacleNote  String?
+  parentNote    String?
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  dailyActivity    DailyActivity @relation(fields: [dailyActivityId], references: [id], onDelete: Cascade)
+  dailyActivity DailyActivity @relation(fields: [dailyActivityId], references: [id], onDelete: Cascade)
 }
 
-/*
-  Untuk grafik progress aktivitas mingguan.
-*/
-
 model WeeklyActivityProgress {
-  id                 Int      @id @default(autoincrement())
-  childId             Int
-  weekStartDate       DateTime
-  weekEndDate         DateTime
-  totalActivity       Int      @default(0)
-  completedActivity   Int      @default(0)
-  missedActivity      Int      @default(0)
-  progressPercent     Float    @default(0)
+  id                String   @id @default(uuid()) @db.Uuid
+  childId           String   @db.Uuid
+  weekStartDate     DateTime
+  weekEndDate       DateTime
+  totalActivity     Int      @default(0)
+  completedActivity Int      @default(0)
+  missedActivity    Int      @default(0)
+  progressPercent   Float    @default(0)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  child               Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId])
   @@index([weekStartDate])
 }
 
-// CARI PSIKOLOG / AHLI
-
 model Expert {
-  id                Int        @id @default(autoincrement())
-  name              String
-  title             String?
-  type              ExpertType
+  id    String     @id @default(uuid()) @db.Uuid
+  name  String
+  title String?
+  type  ExpertType
 
-  photo             String?
-  specialization    String
-  focusCategories   String[]
-  serviceTypes      String[]
+  photo           String?
+  specialization  String
+  focusCategories String[]
+  serviceTypes    String[]
 
-  experience        String?
-  education         String?
-  bio               String?
-  rating            Float?
+  experience String?
+  education  String?
+  bio        String?
+  rating     Float?
 
-  practiceAddress   String?
-  city              String?
-  latitude          Float?
-  longitude         Float?
+  practiceAddress String?
+  city            String?
+  latitude        Float?
+  longitude       Float?
 
-  whatsappNumber    String?
-  instagramUrl      String?
-  websiteUrl        String?
+  whatsappNumber String?
+  instagramUrl   String?
+  websiteUrl     String?
 
-  isActive          Boolean    @default(true)
+  isActive Boolean @default(true)
 
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  histories         ExpertInteraction[]
+  histories ExpertInteraction[]
 
   @@index([type])
   @@index([city])
   @@index([isActive])
 }
 
-/*
-  tabel ini menyimpan riwayat ahli yang dilihat/dihubungi.
-*/
 model ExpertInteraction {
-  id                 Int                @id @default(autoincrement())
-  userId              Int
-  childId             Int?
-  expertId            Int
-  screeningSessionId  Int?
+  id                 String  @id @default(uuid()) @db.Uuid
+  userId             String  @db.Uuid
+  childId            String? @db.Uuid
+  expertId           String  @db.Uuid
+  screeningSessionId String? @db.Uuid
 
-  actionType          ExpertActionType
-  autoMessage         String?
-  externalUrl         String?
+  actionType  ExpertActionType
+  autoMessage String?
+  externalUrl String?
 
-  createdAt           DateTime           @default(now())
+  createdAt DateTime @default(now())
 
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  child               Child?             @relation(fields: [childId], references: [id], onDelete: SetNull)
-  expert              Expert             @relation(fields: [expertId], references: [id], onDelete: Cascade)
-  screeningSession    ScreeningSession?  @relation(fields: [screeningSessionId], references: [id], onDelete: SetNull)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  child            Child?            @relation(fields: [childId], references: [id], onDelete: SetNull)
+  expert           Expert            @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  screeningSession ScreeningSession? @relation(fields: [screeningSessionId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([childId])
