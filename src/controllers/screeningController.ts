@@ -432,7 +432,7 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
           status: "COMPLETED",
           progressCurrentStep: answerData.length,
           progressTotalStep: questions.length,
-          totalScore: Math.round(finalScore),
+          finalScore: Math.round(finalScore),
 
           communicationSpeechScore: domainScores.COMMUNICATION_SPEECH,
           physicalMotorScore: domainScores.PHYSICAL_MOTOR,

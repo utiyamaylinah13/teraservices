@@ -1,12 +1,5 @@
-import type {
-  DomainKey,
-  MainIndication,
-  RiskCategory,
-} from "../types/screeningType.js";
-import {
-  DOMAIN_LABELS,
-  SCREENING_DISCLAIMER,
-} from "../constants/screeningConstant.js";
+import type { DomainKey,MainIndication,RiskCategory} from "../types/screeningType.js";
+import {DOMAIN_LABELS, SCREENING_DISCLAIMER,} from "../constants/screeningConstant.js";
 
 export const getRiskCategory = (finalScore: number): RiskCategory => {
   if (finalScore <= 40) return "Risiko Rendah";

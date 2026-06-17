@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { childRouter } from "./routes/childRoutes.js";
+import screeningRouter from "./routes/screeningRoutes.js";
 
 const app: Application = express();
 
@@ -23,6 +24,7 @@ app.get("/", (_req: Request, res: Response) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/child", childRouter);
+app.use("/api/screening", screeningRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
