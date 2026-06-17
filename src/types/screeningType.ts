@@ -1,3 +1,4 @@
+// domain2 pertanyaan
 export type DomainKey =
   | "COMMUNICATION_SPEECH"
   | "PHYSICAL_MOTOR"

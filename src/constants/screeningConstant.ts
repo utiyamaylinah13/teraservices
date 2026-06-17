@@ -1,5 +1,6 @@
 import type { DomainKey } from "../types/screeningType.js";
 
+// bobot pada setiap domain
 export const DOMAIN_WEIGHTS: Record<DomainKey, number> = {
   COMMUNICATION_SPEECH: 0.25,
   PHYSICAL_MOTOR: 0.25,

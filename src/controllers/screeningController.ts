@@ -2,15 +2,13 @@ import { Response } from "express";
 import prisma from "../lib/prisma.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-
 import type { AnswerInput, DomainKey } from "../types/screeningType.js";
-import {
-  DOMAIN_LABELS,
-  DOMAIN_WEIGHTS,
-} from "../constants/screeningConstant.js";
+import { DOMAIN_LABELS, DOMAIN_WEIGHTS } from "../constants/screeningConstant.js";
 import {
   getRiskCategory,
-  getMainIndication,
+  getPriorityDomains,
+  getMainIndicationByPriorityDomains,
+  getIndicationSummary,
   getGeneralRecommendationText,
   getResultDescription,
 } from "../helper/screeningHelper.js";
@@ -395,23 +393,33 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
       ).toFixed(2)
     );
 
-    const priorityDomain = Object.entries(domainPercentages).sort(
-      (a, b) => b[1] - a[1]
-    )[0][0] as DomainKey;
+    const priorityDomains = getPriorityDomains(domainPercentages);
+
+    const priorityDomain = priorityDomains.length === 1 ? priorityDomains[0] : null;
 
     const category = getRiskCategory(finalScore);
-    const mainIndication = getMainIndication(priorityDomain, finalScore);
 
-    const indicationSummary = `${category}. Domain prioritas: ${DOMAIN_LABELS[priorityDomain]}.`;
+    const mainIndication = getMainIndicationByPriorityDomains(
+      priorityDomains,
+      finalScore
+    );
+
+    const indicationSummary = getIndicationSummary(
+      category,
+      priorityDomains
+    );
 
     const resultDescription = getResultDescription(
       finalScore,
       category,
-      priorityDomain,
+      priorityDomains,
       domainPercentages
     );
 
-    const recommendationText = getGeneralRecommendationText(category, priorityDomain);
+    const recommendationText = getGeneralRecommendationText(
+      category,
+      priorityDomains
+    );
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.screeningAnswer.deleteMany({
@@ -468,7 +476,13 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
         finalScore,
         category,
         priorityDomain,
-        priorityDomainLabel: DOMAIN_LABELS[priorityDomain],
+        priorityDomains,
+        priorityDomainLabel: priorityDomain
+          ? DOMAIN_LABELS[priorityDomain]
+          : "Beberapa domain perkembangan",
+        priorityDomainLabels: priorityDomains.map(
+          (domain) => DOMAIN_LABELS[domain]
+        ),
         weights: DOMAIN_WEIGHTS,
         domainScores,
         domainMaxScores,
