@@ -4,7 +4,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { childRouter } from "./routes/childRoutes.js";
-import screeningRouter from "./routes/screeningRoutes.js";
+import { screningRoutes } from "./routes/screeningRoutes.js";
+import { activityRoutes } from "./routes/activityRoutes.js";
+import { grafikRoutes } from "./routes/grafikRoutes.js";
 
 const app: Application = express();
 
@@ -24,7 +26,9 @@ app.get("/", (_req: Request, res: Response) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/child", childRouter);
-app.use("/api/screening", screeningRouter);
+app.use("/api/screening", screningRoutes);
+app.use("/api/activities", activityRoutes);
+app.use("/api/grafik", grafikRoutes)
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

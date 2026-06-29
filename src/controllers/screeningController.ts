@@ -14,6 +14,7 @@ import {
   getResultDescription,
   getScreeningQuestionsByAgeMonth,
 } from "../helper/screeningHelper.js";
+import { generateActivitiesForChild } from "./activityController.js";
 
 
 export const getScreeningQuestionsByChild = async (
@@ -386,6 +387,14 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
       priorityDomains
     );
 
+    const recomendationActivity = await generateActivitiesForChild(
+      session.child.id,
+      session.id,
+      age.ageMonth,
+      priorityDomains,
+      mainIndication
+    );
+
     const result = await prisma.$transaction(async (tx) => {
       await tx.screeningAnswer.deleteMany({
         where: {
@@ -455,6 +464,7 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
         disclaimer:
           "Hasil screening ini bukan diagnosis final dan tidak menggantikan pemeriksaan profesional.",
       },
+      recomendationActivity
     });
   } catch (error) {
     console.error("SUBMIT SCREENING ERROR:", error);

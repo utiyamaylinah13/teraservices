@@ -8,12 +8,10 @@ import {
 } from "../controllers/screeningController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 
-const router = Router();
+export const screningRoutes = Router();
 
-router.get("/questions/:childId", authMiddleware, getScreeningQuestionsByChild);
-router.post("/start/:childId", authMiddleware, startScreening);
-router.post("/submit/:sessionId", authMiddleware, submitScreening);
-router.get("/result/:sessionId", authMiddleware, getScreeningResult);
-router.get("/history/:childId", authMiddleware, getScreeningHistoryByChild);
-
-export default router;
+screningRoutes.get("/questions/:childId", authMiddleware, getScreeningQuestionsByChild);
+screningRoutes.post("/start/:childId", authMiddleware, startScreening);
+screningRoutes.post("/submit/:sessionId", authMiddleware, submitScreening);
+screningRoutes.get("/result/:sessionId", authMiddleware, getScreeningResult);
+screningRoutes.get("/history/:childId", authMiddleware, getScreeningHistoryByChild);
