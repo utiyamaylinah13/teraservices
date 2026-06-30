@@ -497,14 +497,14 @@ export const getScreeningResult = async (req: AuthRequest, res: Response) => {
         },
       },
       include: {
-        child: true,
-        answers: {
-          include: {
-            question: true,
-            option: true,
-          },
-        },
-        dailyActivities: true
+        // child: true,
+        // answers: {
+        //   include: {
+        //     question: true,
+        //     option: true,
+        //   },
+        // },
+          dailyActivities: true
       },
     });
 
