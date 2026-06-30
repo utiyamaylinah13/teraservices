@@ -504,6 +504,7 @@ export const getScreeningResult = async (req: AuthRequest, res: Response) => {
             option: true,
           },
         },
+        dailyActivities: true
       },
     });
 
