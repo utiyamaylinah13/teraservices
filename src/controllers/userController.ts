@@ -131,3 +131,44 @@ export const getUserActivityLogs = async (req: AuthRequest, res: Response) => {
     return errorResponse(res, "Gagal mengambil riwayat aktivitas", 500);
   }
 };
+
+// Endpoint: Upload Foto Profil User
+export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return errorResponse(res, "Unauthorized", 401);
+
+    if (!req.file) {
+      return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
+    }
+
+    // Format URL foto profil statis
+    const photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${req.file.filename}`;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { profileImage: photoUrl },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        profileImage: true,
+      }
+    });
+
+    logUserActivity({
+      userId,
+      action: "UPDATE_PROFILE",
+      details: { updatedFields: ["profileImage"], photoUrl },
+      req,
+    });
+
+    return successResponse(res, "Foto profil berhasil diperbarui", {
+      photoUrl,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error("UPLOAD PROFILE PHOTO ERROR:", error);
+    return errorResponse(res, "Gagal mengunggah foto profil", 500);
+  }
+};
