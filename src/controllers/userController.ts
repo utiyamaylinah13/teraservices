@@ -4,6 +4,8 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { logUserActivity } from "../utils/logger.js";
 import { ActivityLog } from "../models/ActivityLog.js";
+import { uploadToImgBB } from "../utils/imageUploader.js";
+import fs from "fs";
 
 // Endpoint: Update Profil User
 export const updateProfile = async (req: AuthRequest, res: Response) => {
@@ -142,8 +144,24 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
       return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
     }
 
-    // Format URL foto profil statis
-    const photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${req.file.filename}`;
+    // Default URL foto profil statis lokal
+    let photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${req.file.filename}`;
+
+    // Jika IMGBB_API_KEY diset, unggah file ke cloud ImgBB (Direkomendasikan untuk Production / Vercel)
+    if (process.env.IMGBB_API_KEY) {
+      try {
+        console.log("Mengunggah foto profil ke ImgBB...");
+        photoUrl = await uploadToImgBB(req.file.path);
+        
+        // Hapus file sementara di lokal server
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        console.log("Berhasil mengunggah ke ImgBB:", photoUrl);
+      } catch (err) {
+        console.error("Gagal mengunggah ke ImgBB, menggunakan link lokal:", err);
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
