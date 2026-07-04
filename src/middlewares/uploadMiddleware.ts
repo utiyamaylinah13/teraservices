@@ -2,16 +2,22 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Pastikan direktori uploads/profile-photos ada
-const uploadDir = "./uploads/profile-photos";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Tentukan direktori upload: gunakan /tmp jika berjalan di Vercel (read-only filesystem)
+const isVercel = process.env.VERCEL === "1";
+const uploadDir = isVercel ? "/tmp" : "./uploads/profile-photos";
 
 // Konfigurasi Storage
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
+    try {
+      // Buat folder secara lazy saat upload terjadi (bukan saat inisialisasi modul)
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    } catch (err) {
+      cb(err as Error, uploadDir);
+    }
   },
   filename: (_req, file, cb) => {
     // Memberikan nama unik menggunakan timestamp
