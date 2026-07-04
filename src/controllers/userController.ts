@@ -2,6 +2,8 @@ import { Response } from "express";
 import prisma from "../lib/prisma.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
+import { logUserActivity } from "../utils/logger.js";
+import { ActivityLog } from "../models/ActivityLog.js";
 
 // Endpoint: Update Profil User
 export const updateProfile = async (req: AuthRequest, res: Response) => {
@@ -26,6 +28,13 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         phone: true,
         profileImage: true,
       }
+    });
+
+    logUserActivity({
+      userId,
+      action: "UPDATE_PROFILE",
+      details: { updatedFields: Object.keys(dataToUpdate) },
+      req,
     });
 
     return successResponse(res, "Profil berhasil diperbarui", updatedUser);
@@ -70,9 +79,55 @@ export const saveFaceEmbedding = async (req: AuthRequest, res: Response) => {
       data: { isFaceRecognitionActive: true }
     });
 
+    logUserActivity({
+      userId,
+      action: "SAVE_FACE_EMBEDDING",
+      details: { deviceName: deviceName ?? null, deviceId: deviceId ?? null },
+      req,
+    });
+
     return successResponse(res, "Data wajah berhasil disimpan", newCredential);
   } catch (error) {
     console.error("SAVE FACE EMBEDDING ERROR:", error);
     return errorResponse(res, "Gagal menyimpan data wajah", 500);
+  }
+};
+
+// Endpoint: Mengambil Riwayat Aktivitas User dari MongoDB
+export const getUserActivityLogs = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return errorResponse(res, "Unauthorized", 401);
+
+    const page = parseInt((req.query.page as string) ?? "1");
+    const limit = parseInt((req.query.limit as string) ?? "20");
+    const action = req.query.action as string | undefined;
+
+    const filter: Record<string, any> = { userId };
+    if (action) filter.action = action.toUpperCase();
+
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      ActivityLog.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ActivityLog.countDocuments(filter),
+    ]);
+
+    return successResponse(res, "Riwayat aktivitas berhasil diambil", {
+      logs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("GET USER ACTIVITY LOGS ERROR:", error);
+    return errorResponse(res, "Gagal mengambil riwayat aktivitas", 500);
   }
 };

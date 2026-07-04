@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import type { DomainKey, MainIndication } from "../types/screeningType.js";
 import { ActivityStatus, ScreeningDomain, IndicationType } from "../../generated/prisma/client.js";
+import { logUserActivity } from "../utils/logger.js";
 
 export const generateActivitiesForChild = async (
   childId: string,
@@ -250,6 +251,18 @@ export const updateActivityStatus = async (req: AuthRequest, res: Response) => {
         timeout: 10000, 
       }
     );
+
+    if (upperStatus === "COMPLETED" && req.user?.id) {
+      logUserActivity({
+        userId: req.user.id,
+        action: "COMPLETE_ACTIVITY",
+        details: {
+          activityId: String(activityId),
+          title: result.title,
+        },
+        req,
+      });
+    }
 
     return successResponse(res, "Status aktivitas berhasil diperbarui", result);
   } catch (error) {
