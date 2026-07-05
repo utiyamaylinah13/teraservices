@@ -13,21 +13,28 @@ export const uploadImages = async (
     const ext = file.originalname.split(".").pop();
     const fileName = `${randomUUID()}.${ext}`;
 
-    const { error } = await supabase.storage
+    console.log("Mengunggah ke bucket photos-profiles dengan nama file:", fileName);
+
+    const { data, error } = await supabase.storage
         .from("photos-profiles")
         .upload(fileName, file.buffer, {
             contentType: file.mimetype,
+            upsert: false,
         });
 
-    if (error) throw error;
+    if (error) {
+        console.error("Supabase upload error:", error);
+        throw new Error(`Supabase upload gagal: ${error.message}`);
+    }
 
-    const { data } = supabase.storage
+    const { data: publicData } = supabase.storage
         .from("photos-profiles")
         .getPublicUrl(fileName);
 
-    if (!data || !data.publicUrl) {
+    if (!publicData || !publicData.publicUrl) {
         throw new Error("Gagal mendapatkan public URL dari Supabase");
     }
 
-    return data.publicUrl;
+    console.log("Upload berhasil. Public URL:", publicData.publicUrl);
+    return publicData.publicUrl;
 };

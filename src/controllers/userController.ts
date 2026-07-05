@@ -146,7 +146,7 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
       return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
     }
     let photoUrl = "";
-    
+
     const hasSupabaseConfig = Boolean(
       process.env.SUPABASE_URL &&
         (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY)
@@ -158,9 +158,9 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
         console.log("Mengunggah foto profil ke Supabase...");
         photoUrl = await uploadImages(req.file as Express.Multer.File);
         console.log("Berhasil mengunggah ke Supabase:", photoUrl);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Gagal mengunggah ke Supabase:", err);
-        return errorResponse(res, "Gagal mengunggah foto ke Supabase Storage", 500);
+        return errorResponse(res, err?.message || "Gagal mengunggah foto ke Supabase Storage", 500);
       }
     } else {
       console.warn("Supabase belum dikonfigurasi. Foto tidak diupload ke storage.");
