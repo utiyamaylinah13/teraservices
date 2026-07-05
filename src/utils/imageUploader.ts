@@ -4,9 +4,13 @@ import { randomUUID } from "crypto";
 export const uploadImages = async (
     file: Express.Multer.File
 ): Promise<string> => {
+    if (!supabase) {
+        throw new Error(
+            "Supabase belum dikonfigurasi. Pastikan SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SECRET_KEY tersedia."
+        );
+    }
 
     const ext = file.originalname.split(".").pop();
-
     const fileName = `${randomUUID()}.${ext}`;
 
     const { error } = await supabase.storage

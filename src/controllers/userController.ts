@@ -146,39 +146,27 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
       return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
     }
     let photoUrl = "";
+    
+    const hasSupabaseConfig = Boolean(
+      process.env.SUPABASE_URL &&
+        (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY)
+    );
 
     // Jika konfigurasi Supabase tersedia, unggah ke sana
-    if (process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_URL) {
+    if (hasSupabaseConfig) {
       try {
         console.log("Mengunggah foto profil ke Supabase...");
         photoUrl = await uploadImages(req.file as Express.Multer.File);
         console.log("Berhasil mengunggah ke Supabase:", photoUrl);
       } catch (err) {
         console.error("Gagal mengunggah ke Supabase:", err);
-        photoUrl = ""; // biarkan fallback menangani
+        return errorResponse(res, "Gagal mengunggah foto ke Supabase Storage", 500);
       }
+    } else {
+      console.warn("Supabase belum dikonfigurasi. Foto tidak diupload ke storage.");
+      return errorResponse(res, "Supabase Storage belum dikonfigurasi", 500);
     }
 
-    // Fallback: simpan file secara lokal (dari memoryStorage atau disk)
-    if (!photoUrl) {
-      const uploadsDir = path.join(process.cwd(), "uploads", "profile-photos");
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-      const ext = (req.file.originalname || "").split('.').pop() || 'jpg';
-      const filename = `${randomUUID()}.${ext}`;
-      const destPath = path.join(uploadsDir, filename);
-
-      if (req.file.buffer) {
-        fs.writeFileSync(destPath, req.file.buffer);
-      } else if ((req.file as any).path) {
-        // jika multer menggunakan diskStorage
-        fs.copyFileSync((req.file as any).path, destPath);
-      } else {
-        return errorResponse(res, "Tidak dapat menyimpan file foto", 500);
-      }
-
-      photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${filename}`;
-    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
