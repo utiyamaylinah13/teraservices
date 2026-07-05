@@ -1,33 +1,29 @@
-import fs from "fs";
-/**
- * Mengunggah file gambar lokal ke ImgBB secara permanen dan gratis.
- * @param filePath Path file gambar di lokal server
- * @returns URL gambar publik dari ImgBB
- */
-export const uploadToImgBB = async (filePath) => {
-    const apiKey = process.env.IMGBB_API_KEY;
-    if (!apiKey) {
-        throw new Error("IMGBB_API_KEY tidak ditemukan di environment variables");
+import { supabase } from "../lib/supabase.js";
+import { randomUUID } from "crypto";
+export const uploadImages = async (file) => {
+    if (!supabase) {
+        throw new Error("Supabase belum dikonfigurasi. Pastikan SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SECRET_KEY tersedia.");
     }
-    // Baca file lokal dan ubah ke base64
-    const fileBuffer = fs.readFileSync(filePath);
-    const base64Image = fileBuffer.toString("base64");
-    const formData = new FormData();
-    formData.append("image", base64Image);
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: "POST",
-        body: formData,
+    const ext = file.originalname.split(".").pop();
+    const fileName = `${randomUUID()}.${ext}`;
+    console.log("Mengunggah ke bucket photos-profiles dengan nama file:", fileName);
+    const { data, error } = await supabase.storage
+        .from("photos-profiles")
+        .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
     });
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`ImgBB upload failed: ${errText}`);
+    if (error) {
+        console.error("Supabase upload error:", error);
+        throw new Error(`Supabase upload gagal: ${error.message}`);
     }
-    const result = (await response.json());
-    if (result.success && result.data && result.data.url) {
-        return result.data.url;
+    const { data: publicData } = supabase.storage
+        .from("photos-profiles")
+        .getPublicUrl(fileName);
+    if (!publicData || !publicData.publicUrl) {
+        throw new Error("Gagal mendapatkan public URL dari Supabase");
     }
-    else {
-        throw new Error("Gagal mendapatkan URL gambar dari ImgBB");
-    }
+    console.log("Upload berhasil. Public URL:", publicData.publicUrl);
+    return publicData.publicUrl;
 };
 //# sourceMappingURL=imageUploader.js.map

@@ -2,8 +2,7 @@ import prisma from "../lib/prisma.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logUserActivity } from "../utils/logger.js";
 import { ActivityLog } from "../models/ActivityLog.js";
-import { uploadToImgBB } from "../utils/imageUploader.js";
-import fs from "fs";
+import { uploadImages } from "../utils/imageUploader.js";
 // Endpoint: Update Profil User
 export const updateProfile = async (req, res) => {
     try {
@@ -130,22 +129,24 @@ export const uploadProfilePhoto = async (req, res) => {
         if (!req.file) {
             return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
         }
-        // Default URL foto profil statis lokal
-        let photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${req.file.filename}`;
-        // Jika IMGBB_API_KEY diset, unggah file ke cloud ImgBB (Direkomendasikan untuk Production / Vercel)
-        if (process.env.IMGBB_API_KEY) {
+        let photoUrl = "";
+        const hasSupabaseConfig = Boolean(process.env.SUPABASE_URL &&
+            (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY));
+        // Jika konfigurasi Supabase tersedia, unggah ke sana
+        if (hasSupabaseConfig) {
             try {
-                console.log("Mengunggah foto profil ke ImgBB...");
-                photoUrl = await uploadToImgBB(req.file.path);
-                // Hapus file sementara di lokal server
-                if (fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
-                }
-                console.log("Berhasil mengunggah ke ImgBB:", photoUrl);
+                console.log("Mengunggah foto profil ke Supabase...");
+                photoUrl = await uploadImages(req.file);
+                console.log("Berhasil mengunggah ke Supabase:", photoUrl);
             }
             catch (err) {
-                console.error("Gagal mengunggah ke ImgBB, menggunakan link lokal:", err);
+                console.error("Gagal mengunggah ke Supabase:", err);
+                return errorResponse(res, err?.message || "Gagal mengunggah foto ke Supabase Storage", 500);
             }
+        }
+        else {
+            console.warn("Supabase belum dikonfigurasi. Foto tidak diupload ke storage.");
+            return errorResponse(res, "Supabase Storage belum dikonfigurasi", 500);
         }
         const updatedUser = await prisma.user.update({
             where: { id: userId },
