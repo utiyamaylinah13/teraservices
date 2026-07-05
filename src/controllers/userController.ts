@@ -4,8 +4,10 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { logUserActivity } from "../utils/logger.js";
 import { ActivityLog } from "../models/ActivityLog.js";
-import { uploadToImgBB } from "../utils/imageUploader.js";
+import { uploadImages } from "../utils/imageUploader.js"
 import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
 
 // Endpoint: Update Profil User
 export const updateProfile = async (req: AuthRequest, res: Response) => {
@@ -143,24 +145,39 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
     if (!req.file) {
       return errorResponse(res, "Tidak ada file foto yang diunggah", 400);
     }
+    let photoUrl = "";
 
-    // Default URL foto profil statis lokal
-    let photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${req.file.filename}`;
-
-    // Jika IMGBB_API_KEY diset, unggah file ke cloud ImgBB (Direkomendasikan untuk Production / Vercel)
-    if (process.env.IMGBB_API_KEY) {
+    // Jika konfigurasi Supabase tersedia, unggah ke sana
+    if (process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_URL) {
       try {
-        console.log("Mengunggah foto profil ke ImgBB...");
-        photoUrl = await uploadToImgBB(req.file.path);
-        
-        // Hapus file sementara di lokal server
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-        console.log("Berhasil mengunggah ke ImgBB:", photoUrl);
+        console.log("Mengunggah foto profil ke Supabase...");
+        photoUrl = await uploadImages(req.file as Express.Multer.File);
+        console.log("Berhasil mengunggah ke Supabase:", photoUrl);
       } catch (err) {
-        console.error("Gagal mengunggah ke ImgBB, menggunakan link lokal:", err);
+        console.error("Gagal mengunggah ke Supabase:", err);
+        photoUrl = ""; // biarkan fallback menangani
       }
+    }
+
+    // Fallback: simpan file secara lokal (dari memoryStorage atau disk)
+    if (!photoUrl) {
+      const uploadsDir = path.join(process.cwd(), "uploads", "profile-photos");
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+      const ext = (req.file.originalname || "").split('.').pop() || 'jpg';
+      const filename = `${randomUUID()}.${ext}`;
+      const destPath = path.join(uploadsDir, filename);
+
+      if (req.file.buffer) {
+        fs.writeFileSync(destPath, req.file.buffer);
+      } else if ((req.file as any).path) {
+        // jika multer menggunakan diskStorage
+        fs.copyFileSync((req.file as any).path, destPath);
+      } else {
+        return errorResponse(res, "Tidak dapat menyimpan file foto", 500);
+      }
+
+      photoUrl = `${req.protocol}://${req.get("host")}/uploads/profile-photos/${filename}`;
     }
 
     const updatedUser = await prisma.user.update({

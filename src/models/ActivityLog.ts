@@ -1,13 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
-
-export type ActivityLogAction =
-  | "LOGIN"
-  | "REGISTER"
-  | "LOGOUT"
-  | "SAVE_FACE_EMBEDDING"
-  | "UPDATE_PROFILE"
-  | "COMPLETE_ACTIVITY"
-  | "SUBMIT_SCREENING";
+import type { ActivityLogAction } from "../types/activityLogType.js";
 
 export interface IActivityLog extends Document {
   userId: string;

@@ -1,5 +1,6 @@
 import { Request } from "express";
-import { ActivityLog, ActivityLogAction } from "../models/ActivityLog.js";
+import { ActivityLog } from "../models/ActivityLog.js";
+import type { ActivityLogAction } from "../types/activityLogType.js";
 
 interface LogOptions {
   userId: string;

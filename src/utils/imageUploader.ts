@@ -1,37 +1,29 @@
-import fs from "fs";
+import { supabase } from "../lib/supabase.js";
+import { randomUUID } from "crypto";
 
-/**
- * Mengunggah file gambar lokal ke ImgBB secara permanen dan gratis.
- * @param filePath Path file gambar di lokal server
- * @returns URL gambar publik dari ImgBB
- */
-export const uploadToImgBB = async (filePath: string): Promise<string> => {
-  const apiKey = process.env.IMGBB_API_KEY;
-  if (!apiKey) {
-    throw new Error("IMGBB_API_KEY tidak ditemukan di environment variables");
-  }
+export const uploadImages = async (
+    file: Express.Multer.File
+): Promise<string> => {
 
-  // Baca file lokal dan ubah ke base64
-  const fileBuffer = fs.readFileSync(filePath);
-  const base64Image = fileBuffer.toString("base64");
+    const ext = file.originalname.split(".").pop();
 
-  const formData = new FormData();
-  formData.append("image", base64Image);
+    const fileName = `${randomUUID()}.${ext}`;
 
-  const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-    method: "POST",
-    body: formData,
-  });
+    const { error } = await supabase.storage
+        .from("photos-profiles")
+        .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+        });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`ImgBB upload failed: ${errText}`);
-  }
+    if (error) throw error;
 
-  const result = (await response.json()) as any;
-  if (result.success && result.data && result.data.url) {
-    return result.data.url;
-  } else {
-    throw new Error("Gagal mendapatkan URL gambar dari ImgBB");
-  }
+    const { data } = supabase.storage
+        .from("photos-profiles")
+        .getPublicUrl(fileName);
+
+    if (!data || !data.publicUrl) {
+        throw new Error("Gagal mendapatkan public URL dari Supabase");
+    }
+
+    return data.publicUrl;
 };
