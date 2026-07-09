@@ -16,7 +16,7 @@ router.post("/resend-otp", resendOtp);
 router.post("/login", login);
 router.get("/me", authMiddleware, getMe);
 router.post("/logout", authMiddleware, logout);
-router.post("/request-reset-password", requestResetPassword);
-router.post("/reset-password", resetPassword);
+router.post("/request-reset-password", authMiddleware, requestResetPassword);
+router.post("/reset-password", authMiddleware, resetPassword);
 
 export default router;
