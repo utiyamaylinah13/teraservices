@@ -15,6 +15,7 @@ import {
   getScreeningQuestionsByAgeMonth,
 } from "../helper/screeningHelper.js";
 import { generateActivitiesForChild } from "./activityController.js";
+import { logUserActivity } from "../utils/logger.js";
 
 
 export const getScreeningQuestionsByChild = async (
@@ -440,6 +441,20 @@ export const submitScreening = async (req: AuthRequest, res: Response) => {
       });
 
       return updatedSession;
+    });
+
+    logUserActivity({
+      userId: req.user.id,
+      action: "SUBMIT_SCREENING",
+      details: {
+        sessionId: session.id,
+        childId: session.child.id,
+        childName: session.child.name,
+        finalScore,
+        category,
+        mainIndication,
+      },
+      req,
     });
 
     return successResponse(res, "Screening berhasil diselesaikan", {

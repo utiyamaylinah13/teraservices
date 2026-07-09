@@ -7,6 +7,7 @@ import { childRouter } from "./routes/childRoutes.js";
 import { screningRoutes } from "./routes/screeningRoutes.js";
 import { activityRoutes } from "./routes/activityRoutes.js";
 import { grafikRoutes } from "./routes/grafikRoutes.js";
+import { userRoutes } from "./routes/userRoutes.js";
 
 const app: Application = express();
 
@@ -16,6 +17,7 @@ app.use(morgan("dev"));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
 
 app.get("/", (_req: Request, res: Response) => {
   res.json({
@@ -28,7 +30,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/child", childRouter);
 app.use("/api/screening", screningRoutes);
 app.use("/api/activities", activityRoutes);
-app.use("/api/grafik", grafikRoutes)
+app.use("/api/grafik", grafikRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

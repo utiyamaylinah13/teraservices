@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import prisma from "../../lib/prisma.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
 import { generateToken } from "../../utils/jwt.js";
+import { logUserActivity } from "../../utils/logger.js";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -54,6 +55,13 @@ export const login = async (req: Request, res: Response) => {
     const token = generateToken({
       id: user.id,
       email: user.email,
+    });
+
+    logUserActivity({
+      userId: user.id,
+      action: "LOGIN",
+      details: { email: user.email },
+      req,
     });
 
     return successResponse(res, "Login berhasil", {

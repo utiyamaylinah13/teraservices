@@ -6,6 +6,7 @@ import { successResponse, errorResponse } from "../../utils/response.js";
 import { generateOtp, hashOtp, getOtpExpiredAt } from "../../utils/otp.js";
 import { sendOtpEmail } from "../../utils/mail.js";
 import { isValidEmail, isValidPassword } from "./validation.js";
+import { logUserActivity } from "../../utils/logger.js";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -97,6 +98,13 @@ export const register = async (req: Request, res: Response) => {
           500
         );
     }
+
+    logUserActivity({
+      userId: user.id,
+      action: "REGISTER",
+      details: { email: user.email, fullName: user.fullName },
+      req,
+    });
 
     return successResponse(
       res,
