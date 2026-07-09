@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../../lib/prisma.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
-// Sesuaikan nama fungsi 'generateToken' dengan yang ada di file jwt.ts milikmu
 import { generateToken } from "../../utils/jwt.js"; 
 
 // Fungsi Matematika Euclidean Distance
@@ -14,9 +13,7 @@ const calculateEuclideanDistance = (emb1: number[], emb2: number[]) => {
   return Math.sqrt(sum);
 };
 
-// ==========================================
-// 1. ENDPOINT REGISTRASI WAJAH (BUTUH LOGIN)
-// ==========================================
+
 export const registerFace = async (req: Request, res: Response) => {
   try {
     const { embedding } = req.body;
@@ -120,7 +117,10 @@ export const faceLoginIdentification = async (req: Request, res: Response) => {
 
       // Buat token JWT untuk masuk ke aplikasi
       // Jika fungsimu menerima parameter obyek, sesuaikan. Misal: generateToken({ id: user.id })
-      const token = generateToken(user.id);
+      const token = generateToken({
+        id : user.id,
+        email: user.email,
+      });
 
       return successResponse(res, "Login berhasil", {
         user: {

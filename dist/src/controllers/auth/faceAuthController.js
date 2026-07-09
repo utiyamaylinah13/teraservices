@@ -1,36 +1,131 @@
 import prisma from "../../lib/prisma.js";
 import { successResponse, errorResponse } from "../../utils/response.js";
-// Endpoint: Mengambil Face Embedding berdasarkan Email (Untuk Login)
-export const getFaceEmbeddingByEmail = async (req, res) => {
+import { generateToken } from "../../utils/jwt.js";
+// Fungsi Matematika Euclidean Distance
+const calculateEuclideanDistance = (emb1, emb2) => {
+    if (emb1.length !== emb2.length)
+        return Infinity;
+    let sum = 0;
+    for (let i = 0; i < emb1.length; i++) {
+        sum += Math.pow(emb1[i] - emb2[i], 2);
+    }
+    return Math.sqrt(sum);
+};
+export const registerFace = async (req, res) => {
     try {
-        const { email } = req.body;
-        if (!email) {
-            return errorResponse(res, "Email wajib disertakan", 400);
+        const { embedding } = req.body;
+        // Mengambil user ID dari authMiddleware
+        const userId = req.user?.id;
+        if (!userId) {
+            return errorResponse(res, "Akses ditolak, token tidak valid", 401);
         }
-        const user = await prisma.user.findUnique({
-            where: { email },
-            include: {
-                faceCredentials: {
-                    where: { isActive: true },
-                    take: 1
-                }
+        if (!embedding || !Array.isArray(embedding)) {
+            return errorResponse(res, "Data embedding wajah tidak valid", 400);
+        }
+        // 1. Nonaktifkan data credential wajah yang lama jika ada (isActive = false)
+        await prisma.faceCredential.updateMany({
+            where: { userId: userId },
+            data: { isActive: false }
+        });
+        // 2. Simpan data credential wajah yang baru
+        await prisma.faceCredential.create({
+            data: {
+                userId: userId,
+                embedding: embedding,
+                isActive: true,
             }
         });
-        if (!user) {
-            return errorResponse(res, "User tidak ditemukan", 404);
-        }
-        if (!user.isFaceRecognitionActive || user.faceCredentials.length === 0) {
-            return errorResponse(res, "Face Recognition belum diaktifkan untuk akun ini", 400);
-        }
-        return successResponse(res, "Data embedding wajah berhasil diambil", {
-            email: user.email,
-            fullName: user.fullName,
-            embedding: user.faceCredentials[0].embedding
+        // 3. Update status isFaceRecognitionActive milik user menjadi true
+        await prisma.user.update({
+            where: { id: userId },
+            data: { isFaceRecognitionActive: true }
         });
+        return successResponse(res, "Data wajah berhasil didaftarkan");
     }
     catch (error) {
-        console.error("GET FACE EMBEDDING ERROR:", error);
-        return errorResponse(res, "Gagal mengambil data embedding wajah", 500);
+        console.error("REGISTER FACE ERROR:", error);
+        return errorResponse(res, "Terjadi kesalahan saat mendaftarkan wajah", 500);
+    }
+};
+// ==========================================
+// 2. ENDPOINT LOGIN WAJAH 1:N (TANPA EMAIL)
+// ==========================================
+export const faceLoginIdentification = async (req, res) => {
+    try {
+        const { embedding } = req.body;
+        if (!embedding || !Array.isArray(embedding)) {
+            return errorResponse(res, "Data embedding wajah tidak valid", 400);
+        }
+        // 1. Ambil SEMUA data wajah yang aktif beserta relasi usernya
+        const faceCredentials = await prisma.faceCredential.findMany({
+            where: { isActive: true },
+            include: { user: true }
+        });
+        if (faceCredentials.length === 0) {
+            return errorResponse(res, "Belum ada data wajah yang terdaftar di sistem", 404);
+        }
+        // 2. Proses Pencocokan (Pencarian Vektor)
+        let bestMatch = null;
+        let minDistance = Infinity;
+        // Tentukan nilai toleransi kemiripan (Makin kecil makin ketat. Coba angka 1.0 - 1.2)
+        const THRESHOLD = 1.0;
+        for (const record of faceCredentials) {
+            const dbEmbedding = record.embedding;
+            const distance = calculateEuclideanDistance(embedding, dbEmbedding);
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestMatch = record;
+            }
+        }
+        // 3. Evaluasi Hasil
+        if (bestMatch && minDistance <= THRESHOLD) {
+            const user = bestMatch.user;
+            if (!user.isFaceRecognitionActive) {
+                return errorResponse(res, "Fitur face login sedang dinonaktifkan oleh pengguna ini", 403);
+            }
+            // Catat ke tabel FaceAuthLog dengan status SUCCESS
+            await prisma.faceAuthLog.create({
+                data: {
+                    userId: user.id,
+                    email: user.email,
+                    status: "SUCCESS",
+                    distance: minDistance,
+                    threshold: THRESHOLD,
+                    message: "Login wajah berhasil"
+                }
+            });
+            // Buat token JWT untuk masuk ke aplikasi
+            // Jika fungsimu menerima parameter obyek, sesuaikan. Misal: generateToken({ id: user.id })
+            const token = generateToken({
+                id: user.id,
+                email: user.email,
+            });
+            return successResponse(res, "Login berhasil", {
+                user: {
+                    id: user.id,
+                    fullName: user.fullName,
+                    email: user.email,
+                },
+                similarityDistance: minDistance,
+                token: token
+            });
+        }
+        else {
+            // Jika wajah asing, catat dengan status FAILED
+            await prisma.faceAuthLog.create({
+                data: {
+                    status: "FAILED",
+                    distance: minDistance !== Infinity ? minDistance : null,
+                    threshold: THRESHOLD,
+                    message: "Wajah tidak dikenali atau belum terdaftar"
+                }
+            });
+            return errorResponse(res, "Wajah tidak dikenali. Silakan gunakan email dan password.", 401);
+        }
+    }
+    catch (error) {
+        console.error("FACE LOGIN IDENTIFICATION ERROR:", error);
+        return errorResponse(res, "Terjadi kesalahan pada server saat memproses wajah", 500);
     }
 };
 //# sourceMappingURL=faceAuthController.js.map
