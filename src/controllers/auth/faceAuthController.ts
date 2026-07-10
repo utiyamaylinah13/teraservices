@@ -140,6 +140,7 @@ export const faceLoginIdentification = async (req: Request, res: Response) => {
           hasChildData : user.children.length > 0,
           isFaceRecognitionActive: user.isFaceRecognitionActive,
           isEmailVerified: user.isEmailVerified,
+          children : user.children
         },
         similarityDistance: minDistance,
         token: token
