@@ -8,6 +8,7 @@ import { screningRoutes } from "./routes/screeningRoutes.js";
 import { activityRoutes } from "./routes/activityRoutes.js";
 import { grafikRoutes } from "./routes/grafikRoutes.js";
 import { userRoutes } from "./routes/userRoutes.js";
+import { articleRoutes } from "./routes/articleRoutes.js";
 const app = express();
 app.use(helmet());
 app.use(cors());
@@ -27,6 +28,7 @@ app.use("/api/screening", screningRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/grafik", grafikRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/articles", articleRoutes);
 app.use((_req, res) => {
     res.status(404).json({
         success: false,
