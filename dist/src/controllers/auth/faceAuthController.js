@@ -61,6 +61,8 @@ export const faceLoginIdentification = async (req, res) => {
                         id: true,
                         fullName: true,
                         email: true,
+                        phone: true,
+                        profileImage: true,
                         isFaceRecognitionActive: true,
                         isEmailVerified: true,
                         children: {
@@ -116,10 +118,12 @@ export const faceLoginIdentification = async (req, res) => {
                     id: user.id,
                     fullName: user.fullName,
                     email: user.email,
-                    hasChildData: user.children.length > 0,
-                    isFaceRecognitionActive: user.isFaceRecognitionActive,
+                    phone: user.phone,
+                    profileImage: user.profileImage,
                     isEmailVerified: user.isEmailVerified,
-                    children: user.children
+                    isFaceRecognitionActive: user.isFaceRecognitionActive,
+                    hasChildData: user.children.length > 0,
+                    children: user.children,
                 },
                 similarityDistance: minDistance,
                 token: token
